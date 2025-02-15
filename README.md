@@ -24,7 +24,7 @@ If your pattern is mirrored on the sides (as is the Crane pattern):
 
 Note that the back rest has no cuts of its own. Be sure to incorporate the back rest bars into the left and right.
 
-*Clone* this project if you want to submit pull requests for changes.
+**Clone** this project if you want to submit pull requests for changes.
 
-*Fork* this project if you want only to create your own work from what I've done.
+**Fork** this project if you want only to create your own work from what I've done.
 
