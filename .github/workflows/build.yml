@@ -1,0 +1,196 @@
+name: Build artefacts and release on every push
+
+on: 
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Establish project reference to be used throughout
+        run: |
+          # ##################################################
+          #
+          # This is where the short filename component is set:
+          #
+          echo "PROJECT_REFERENCE=phone-stand" >> $GITHUB_ENV
+          #
+          # ##################################################
+        
+      - name: Install required fonts
+        run: |
+          set -e
+          mkdir -p ~/.fonts
+          wget -q https://noto-website-2.storage.googleapis.com/pkgs/NotoSans-hinted.zip -O /tmp/NotoSans-hinted.zip || { echo 'Failed to download Noto Sans'; exit 1; }
+          wget -q https://noto-website-2.storage.googleapis.com/pkgs/NotoSerif-hinted.zip -O /tmp/NotoSerif-hinted.zip || { echo 'Failed to download Noto Serif'; exit 1; }
+          
+          unzip -o -q /tmp/NotoSans-hinted.zip -d ~/.fonts || { echo 'Failed to unzip Noto Sans'; exit 1; }
+          unzip -o -q /tmp/NotoSerif-hinted.zip -d ~/.fonts || { echo 'Failed to unzip Noto Serif'; exit 1; }
+          fc-cache -f -v
+          ls ~/.fonts/Noto*
+
+      - name: Install Inkscape
+        run: |
+          sudo add-apt-repository ppa:inkscape.dev/stable
+          sudo apt-get update
+          sudo apt-get install -y inkscape
+          inkscape --version
+
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get install -y imagemagick
+          convert --version
+          
+      - name: Create subdirectories
+        run: |
+          mkdir -p utilities/saxon9he
+          mkdir -p utilities/designSVG2burnFiles
+  
+      - name: Fetch designSVG2burnFiles.xsl from CraneSoftwrights
+        run: |
+          git clone --depth 1 https://github.com/CraneSoftwrights/designSVG2burnFiles.git temp-repo
+          cp -r temp-repo/* utilities/designSVG2burnFiles
+          rm -rf temp-repo
+  
+      - name: Fetch saxon9he.jar
+        run: |
+          curl -L -o utilities/saxon9he/saxon9he.jar https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.9.1-8/Saxon-HE-9.9.1-8.jar
+        
+      - name: Run make-all.sh script
+        run: |
+          echo > make-all.log.txt
+          bash make-all.sh ${{ env.PROJECT_REFERENCE }}
+
+      - name: Set up Git
+        run: |
+          # ensure GitHub/Repository/Settings/Actions/General/ActionsPermissions is allow all actions
+          # ensure GitHub/Repository/Settings/Actions/General/WorkflowPermissions is read/write
+          # 
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Set prior environment variables
+        run: |
+          echo "ACTOR=${{ github.actor }}" >> $GITHUB_ENV
+          commit_message=$(git log -1 --pretty=format:"%s")
+          echo "PRIOR_COMMIT_MESSAGE=$commit_message" >> $GITHUB_ENV
+          PRIOR_COMMIT_HASH_SHORT=$(git rev-parse --short=8 HEAD)
+          echo "PRIOR_COMMIT_HASH_SHORT=$PRIOR_COMMIT_HASH_SHORT" >> $GITHUB_ENV
+
+      - name: Commit changes
+        if: success()
+        run: |
+          git add .
+          if ! git diff-index --quiet HEAD --; then
+            git commit -m "Update artifacts from push action"
+            NEW_COMMIT_SHA=$(git rev-parse HEAD)
+            echo "NEW_COMMIT_SHA=$NEW_COMMIT_SHA" >> $GITHUB_ENV
+            git push
+          else
+            echo "No changes to commit"
+            NEW_COMMIT_SHA=""
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for push to complete
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_COMMIT_SHA: ${{ env.NEW_COMMIT_SHA }}
+        run: |
+          OWNER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
+          REPO=$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)
+          if [ -n "$NEW_COMMIT_SHA" ]; then
+            for i in {2..10}; do
+              sleep $((2**i))
+              if gh api repos/$OWNER/$REPO/commits/$NEW_COMMIT_SHA --silent; then
+                echo "Push completed"
+                break
+              else
+                echo "Push not yet completed. Retrying in $((2**i)) seconds..."
+              fi
+            done
+          else
+            echo "No new commit was created. Skipping wait for push."
+          fi
+          
+      - name: Set environment variables
+        run: |
+          # Define the release version using UTC in the format CCMMYYDD-HHMMZ
+          echo "RELEASE_VERSION=$(date -u +'%C%y%m%d-%H%MZ')" >> $GITHUB_ENV
+          echo "BRANCH_NAME=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          LATEST_COMMIT_HASH_SHORT=$(git rev-parse --short=8 HEAD)
+          echo "COMMIT_HASH_SHORT=$LATEST_COMMIT_HASH_SHORT" >> $GITHUB_ENV
+          echo "PACKAGE=$(echo ${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }} )" >> $GITHUB_ENV
+                    
+      - name: Annotate message log
+        run: |
+          echo >> make-all.log.txt
+          echo Branch:  $BRANCH_NAME >> make-all.log.txt
+          echo Commit:  $COMMIT_HASH_SHORT >> make-all.log.txt
+          echo Release: $RELEASE_VERSION >> make-all.log.txt
+
+      - name: Create action result ZIP
+        run: |
+          echo RELEASE_VERSION=${{ env.RELEASE_VERSION }}
+          echo BRANCH_NAME=${{ env.BRANCH_NAME }}
+          echo COMMIT_HASH_SHORT=${{ env.COMMIT_HASH_SHORT }}
+          mkdir   download
+          cp make-all.log.txt download
+          # compose README file
+          cp      shared/outputs-readme.txt \
+                  download/README-${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.txt
+          echo  >>download/README-${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.txt ${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}
+          # package up everything except README
+          zip -r         download/${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.zip burn/svg burn/pdf burn/png cuts/svg cuts/pdf -x 'burn/svg/*.svg.txt'
+          # add README without the directory prefix
+          cd             download
+          zip -r                  ${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.zip \
+                           README-${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.txt
+          # remove the README file in order to test the ZIP
+          rm               README-${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.txt
+          # test the ZIP by unzipping it
+          unzip                   ${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.zip
+                  
+      - name: Upload artefacts for action - burn files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}
+          path: |
+            download/*
+            !download/${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.zip
+
+      - name: Upload artefacts for action - log file
+        uses: actions/upload-artifact@v4
+        with:
+          name: make-all.log.txt
+          path: |
+            make-all.log.txt
+
+      - name: Install GitHub CLI
+        if: ${{ success() && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/main') }}
+        run: sudo apt-get install -y gh
+
+      - name: Create GitHub Release
+        if: ${{ success() && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/main') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create the release
+          gh release create "${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}" \
+            --title "Release ${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}" \
+            --notes "Automated release created by GitHub Actions. Triggered by: ${{ env.ACTOR }}. Prior commit message: '${{ env.PRIOR_COMMIT_MESSAGE }}'. Prior commit short hash: '${{ env.PRIOR_COMMIT_HASH_SHORT }}'. For more details, see the commit history."
+
+      - name: Attach artefacts to the release
+        if: ${{ success() && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/main') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}" download/${{ env.PROJECT_REFERENCE }}-pdf-png-svg--${{ env.RELEASE_VERSION }}-${{ env.BRANCH_NAME }}-${{ env.COMMIT_HASH_SHORT }}.zip make-all.log.txt

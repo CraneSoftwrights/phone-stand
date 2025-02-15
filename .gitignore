@@ -1,0 +1,25 @@
+# Ignore Mac system files
+**/.DS_Store
+
+# Dynamic reporting files
+make-all.log.txt
+
+# Intermediate files
+burn/svg2svgpdfpng.*
+burn/svg/*
+!burn/svg/README.md
+!burn/svg/README.md.html
+
+# Keep PNG in the repository, ignore PDF and find it in the ZIP
+#burn/png/*
+#!burn/png/README.md
+#!burn/png/README.md.html
+burn/pdf/*
+!burn/pdf/README.md
+!burn/pdf/README.md.html
+
+# Download directory used on server is not checked in
+download
+
+# Utilities now are fetched dynamically on the server and not included in the repository
+utilities
