@@ -1,5 +1,11 @@
 # phone-stand
 
+Copyright © Crane Softwrights Ltd. ([copyright details](LICENSE))  
+Projects: [`https://github.com/CraneSoftwrights/games`](https://github.com/CraneSoftwrights/games)  
+Development: [`https://github.com/CraneSoftwrights/phone-stand`](https://github.com/CraneSoftwrights/phone-stand)  
+Tip jar: [`https://paypal.me/CraneSoftwrights`](https://paypal.me/CraneSoftwrights)   
+
+
 A collapsible cell/mobile phone stand suitable for travel ... because I needed one!
 
 The design is in layers so you can decorate the item however you wish.
@@ -18,7 +24,7 @@ If your pattern is mirrored on the sides (as is the Crane pattern):
 
 Note that the back rest has no cuts of its own. Be sure to incorporate the back rest bars into the left and right.
 
-Copyright © Crane Softwrights Ltd. ([copyright details](LICENSE))  
-Projects: [`https://github.com/CraneSoftwrights/games`](https://github.com/CraneSoftwrights/games)  
-Development: [`https://github.com/CraneSoftwrights/phone-stand`](https://github.com/CraneSoftwrights/phone-stand)  
-Tip jar: [`https://paypal.me/CraneSoftwrights`](https://paypal.me/CraneSoftwrights)   
+*Clone* this project if you want to submit pull requests for changes.
+
+*Fork* this project if you want only to create your own work from what I've done.
+
