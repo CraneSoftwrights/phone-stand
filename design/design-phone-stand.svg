@@ -32,7 +32,7 @@
      inkscape:window-x="1932"
      inkscape:window-y="44"
      inkscape:window-maximized="0"
-     inkscape:current-layer="layer7"
+     inkscape:current-layer="layer8"
      showgrid="false" /><defs
      id="defs1" /><g
      inkscape:groupmode="layer"
@@ -542,7 +542,7 @@
                transform="scale(-1)" /></g></g></g><g
          inkscape:groupmode="layer"
          id="layer4"
-         inkscape:label="CraneSideLogoCuts"
+         inkscape:label="CraneSideLogoCuts:"
          style="display:inline"><g
            id="g112"
            transform="translate(-5.1098047,-0.64851453)"
@@ -606,7 +606,7 @@
              sodipodi:nodetypes="cccc" /></g></g><g
          inkscape:groupmode="layer"
          id="layer8"
-         inkscape:label="OutsideCut:s"><rect
+         inkscape:label="OutsideCuts:"><rect
            style="display:inline;fill:none;stroke:#ff00ff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
            id="rect5"
            width="189"
