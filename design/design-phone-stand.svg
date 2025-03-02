@@ -32,7 +32,7 @@
      inkscape:window-x="1932"
      inkscape:window-y="44"
      inkscape:window-maximized="0"
-     inkscape:current-layer="layer8"
+     inkscape:current-layer="g138"
      showgrid="false" /><defs
      id="defs1" /><g
      inkscape:groupmode="layer"
@@ -44,7 +44,7 @@
        inkscape:label="WithoutSideCuts = OutsideCuts LeftRight BackRestRaster" /><g
        inkscape:groupmode="layer"
        id="g138"
-       inkscape:label="WithSideCuts =      OutsideCuts LeftRight BackRestRaster CraneSideLogoCuts" /></g><g
+       inkscape:label="WithSideCuts =      CraneSideLogoCuts OutsideCuts LeftRight BackRestRaster " /></g><g
      inkscape:groupmode="layer"
      id="layer1"
      inkscape:label="---------- Not used -----------"
